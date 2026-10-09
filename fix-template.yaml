@@ -22,8 +22,12 @@ Parameters:
 
   AMIId:
     Type: AWS::EC2::Image::Id
-    Default: ami-03814457ed908d8f6
-    Description: The AMI ID to use.
+    Default: /aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-s3
+    Description: latest amzn2-ami-hvm-x86_64-gp2
+    
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Select an existing EC2 Key Pair
 
 Resources:
   EC2Instance:
@@ -31,6 +35,10 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref AMIId
+       # Attach the security group to EC2
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      KeyName: !Ref KeyName
       Tags:
         - Key: Name
           Value: !Sub "${EnvironmentName}-instance"
@@ -39,12 +47,22 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow SSH access
-      VpcId: vpc-0d5d4b0f4e6f895ad
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+   # Attach key pair only when provided
+      KeyName: !If
+        - HasKeyPair
+        - !Ref KeyName
+        - !Ref AWS::NoValue
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-instance"
+
 
 Outputs:
   InstanceId:
